@@ -5,9 +5,11 @@ The shiny app is complementary to the COVID-19 Forecast Hub
 These files are a work-in-progress version of the files in [data-processed/](../../data-processed).
 For now, the data-processed/ files should be used.
 
+Software requirements: R 4.0 or higher, the `tidyverse`, `data.table`, `R.utils`, `shiny`, `DT`, `shinyWidgets`, `ggnewscale`, `reshape2`, and `drake` packages.
+
 If you want to try out this new version of the shiny app you can use 
 
-    drake::r_make("code/shiny/_drake.R")
+    drake::r_make("code/shiny/_drake.R") # this line can take over 10 minutes to run
     source("code/shiny/app.R")
     shinyApp(ui = ui, server = server) # if it doesn't automatically run
     
