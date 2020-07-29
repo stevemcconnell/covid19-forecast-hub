@@ -7,7 +7,7 @@ For now, the data-processed/ files should be used.
 
 Software requirements: R 4.0 or higher and the following packages:
 
-    install.packages(c("tidyverse","data.tabe","R.utils","shiny","DT",
+    install.packages(c("tidyverse","data.table","R.utils","shiny","DT",
                        "shinyWidgets","ggnewscale","reshape2","drake","MMWRweek"))
 
 If you want to try out this new version of the shiny app you can use 
