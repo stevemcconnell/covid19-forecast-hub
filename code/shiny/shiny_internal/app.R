@@ -8,29 +8,21 @@ options(DT.options = list(pageLength = 50))
 
 source("code/processing-fxns/get_next_saturday.R")
 
-# all_data = readRDS("code/shiny/drake_files/all_data.RDS")
 fourweek_date = get_next_saturday(Sys.Date() + 3*7)
 loadd(truth)
 truth_sources = unique(truth$source)
-# loadd(latest)
 loadd(latest_locations)
 loadd(latest_targets)
 loadd(latest_quantiles)
 loadd(latest_quantiles_summary)
-# ensemble=readRDS("code/shiny/drake_files/ensemble.RDS")
-# g_ensemble_quantiles=readRDS("code/shiny/drake_files/g_ensemble_quantiles.RDS")
 loadd(latest_plot_data)
-# latest_plot_data=readRDS("code/shiny/drake_files/latest_plot_data.RDS")
 
 ui <- navbarPage(
   "Explore:",
   
   tabPanel("Latest locations", 
            DT::DTOutput("latest_locations")),
-  
-  #tabPanel("Latest targets",  
-  #          h5("max_n: the farthest ahead forecast for this target (does not guarantee that all earlier targets exist)"),
-  #          DT::DTOutput("old_latest_targets")),
+
   tabPanel("Latest targets",  
            sidebarLayout(
              sidebarPanel(
@@ -56,14 +48,6 @@ ui <- navbarPage(
            DT::DTOutput("latest_quantiles_summary"), 
            h3("Quantiles by target"),
            DT::DTOutput("latest_quantiles")),
-  
-  # tabPanel("Ensemble",           
-  #          DT::DTOutput("ensemble"),
-  #          # DT::DTOutput("ensemble_quantiles"),
-  #          plotOutput("ensemble_quantile_plot")),
-  
-  # tabPanel("Latest",           
-  #          DT::DTOutput("latest")),
   
   tabPanel("Latest Viz",
            sidebarLayout(
@@ -99,9 +83,6 @@ ui <- navbarPage(
              )
            )
   ),
-  # tabPanel("All",              
-  #          DT::DTOutput("all_data")),
-  
   tabPanel("Help",
            h3("Explore tabs"),
            h5("Latest targets: summarizes `Latest` to see which targets are included"),
@@ -246,16 +227,8 @@ server <- function(input, output, session) {
              grepl(input_simple_target, simple_target),
              source %in% input$loc_sources)
   })
-  
-  #set_shiny_plot_height <- function(session, output_width_name){
-  #  function() { 
-  #    session$clientData[[output_width_name]] *2
-  #  }
-  #}
-  
-  
 
-  
+
   output$latest_plot_by_location      <- shiny::renderPlot({
     d    <- latest_loc_ltct()
     team_model <- unique(d$team_model)

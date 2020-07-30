@@ -50,8 +50,6 @@ ui <- navbarPage(
              )
            )
   ),
-  # tabPanel("All",              
-  #          DT::DTOutput("all_data")),
   
   tabPanel("Help",
            h3("Explore tabs"),
