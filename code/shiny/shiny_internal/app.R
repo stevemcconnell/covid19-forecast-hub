@@ -8,14 +8,19 @@ options(DT.options = list(pageLength = 50))
 
 source("code/processing-fxns/get_next_saturday.R")
 
+# all_data = readRDS("code/shiny/drake_files/all_data.RDS")
 fourweek_date = get_next_saturday(Sys.Date() + 3*7)
 loadd(truth)
 truth_sources = unique(truth$source)
+# loadd(latest)
 loadd(latest_locations)
 loadd(latest_targets)
 loadd(latest_quantiles)
 loadd(latest_quantiles_summary)
+# ensemble=readRDS("code/shiny/drake_files/ensemble.RDS")
+# g_ensemble_quantiles=readRDS("code/shiny/drake_files/g_ensemble_quantiles.RDS")
 loadd(latest_plot_data)
+# latest_plot_data=readRDS("code/shiny/drake_files/latest_plot_data.RDS")
 
 ui <- navbarPage(
   "Explore:",
@@ -23,7 +28,9 @@ ui <- navbarPage(
   tabPanel("Latest locations", 
            DT::DTOutput("latest_locations")),
   
-
+  #tabPanel("Latest targets",  
+  #          h5("max_n: the farthest ahead forecast for this target (does not guarantee that all earlier targets exist)"),
+  #          DT::DTOutput("old_latest_targets")),
   tabPanel("Latest targets",  
            sidebarLayout(
              sidebarPanel(
@@ -49,7 +56,14 @@ ui <- navbarPage(
            DT::DTOutput("latest_quantiles_summary"), 
            h3("Quantiles by target"),
            DT::DTOutput("latest_quantiles")),
-
+  
+  # tabPanel("Ensemble",           
+  #          DT::DTOutput("ensemble"),
+  #          # DT::DTOutput("ensemble_quantiles"),
+  #          plotOutput("ensemble_quantile_plot")),
+  
+  # tabPanel("Latest",           
+  #          DT::DTOutput("latest")),
   
   tabPanel("Latest Viz",
            sidebarLayout(
@@ -85,7 +99,8 @@ ui <- navbarPage(
              )
            )
   ),
-
+  # tabPanel("All",              
+  #          DT::DTOutput("all_data")),
   
   tabPanel("Help",
            h3("Explore tabs"),
@@ -104,10 +119,11 @@ ui <- navbarPage(
 
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {
-
+  
   output$latest_locations <- DT::renderDT(latest_locations, filter = "top")
   output$latest_quantiles <- DT::renderDT(latest_quantiles, filter = "top")
   output$latest_quantiles_summary <- DT::renderDT(latest_quantiles_summary, filter = "top")
+  
   
   #############################################################################
   # Latest viz: Filter data based on user input
@@ -138,7 +154,7 @@ server <- function(input, output, session) {
   latest_tmt  <- reactive({ latest_t()      %>% filter(simple_target == input$target) })
   latest_tmtl <- reactive({ latest_tmt()     %>% filter(abbreviation    == input$abbreviation) })
   latest_tmtlc <- reactive({ latest_tmtl()     %>% filter(location_name    == input$county) })
-
+  
   truth_plot_data <- reactive({ 
     input_simple_target <- unique(paste(
       latest_tmtlc()$unit, "ahead", latest_tmtlc()$inc_cum, latest_tmtlc()$death_cases))

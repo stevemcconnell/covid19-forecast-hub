@@ -77,8 +77,8 @@ plan = drake::drake_plan(
    
    latest_targets = target(
      dplyr::bind_rows(latest_targets_by_model) %>%
-       dplyr::select(team_model, forecast_date, type, max_n, target) %>%
-       dplyr::arrange(team_model, forecast_date, type, target),
+       dplyr::select(team, model, forecast_date, type, max_n, target) %>%
+       dplyr::arrange(team, model, forecast_date, type, target),
      transform = combine(latest_targets_by_model)
    ),
    

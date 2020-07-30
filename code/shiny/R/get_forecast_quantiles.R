@@ -7,7 +7,7 @@ get_forecast_quantiles <- function(d){
   d %>%
     dplyr::filter(type == "quantile") %>%
     dplyr::mutate(quantile = sprintf("%.3f", as.double(quantile))) %>%
-    dplyr::group_by(team, model, forecast_date, target) %>%
+    dplyr::group_by(team_model, forecast_date, target) %>%
     dplyr::summarize(
       full = all(quantiles$full %in% quantile),
       min  = all(quantiles$min  %in% quantile),

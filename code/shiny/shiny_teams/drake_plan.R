@@ -2,20 +2,15 @@ plan = drake::drake_plan(
   locations = get_locations(file_in("data-locations/locations.csv")),
   
   
+  all_forecast_dates = get_all_forecast_dates(forecast_files),
+  
+  
   ##############
   # All Forecasts
   raw_data = target(
     read_forecast_file(file_in(file)) %>%
-      dplyr::left_join(locations, by = c("location"))%>%
-           tidyr::separate(target, into=c("n_unit","unit","ahead","inc_cum","death_cases"),remove = FALSE),
-    # create id with forecast date and team_model name
-    transform = map(file = !!forecast_files,times = !!ids_times, models = !!paste0(ids,"_"),.id = c(times,models))
-  ),
-  
-  # Combine forecasts by team_model name
-  raw_data_by_model = target(
-    dplyr::bind_rows(raw_data),
-    transform = combine(raw_data,.by = models)
+      dplyr::left_join(locations, by = c("location")),
+    transform = map(file = !!forecast_files)
   ),
   
   all_forecasts = target(
@@ -26,73 +21,74 @@ plan = drake::drake_plan(
   ##############
   # Latest Forecasts
   latest_forecasts = target(
-    dplyr::filter(raw_data_by_model,forecast_date == max(forecast_date)),
-    transform = map(raw_data_by_model)
+    read_forecast_file(file_in(file)) %>%
+      dplyr::left_join(locations, by = c("location")) %>%
+      tidyr::separate(target, into=c("n_unit","unit","ahead","inc_cum","death_cases"),
+                      remove = FALSE),
+    transform = map(file = !!latest_forecast_files,id_var = !!paste0(ids,"_"), .id=id_var)
   ),
   
-
   latest = target(
     dplyr::bind_rows(latest_forecasts),
     transform = combine(latest_forecasts)
   ),
-
+  
   # Locations
   latest_locations_by_model = target(
     get_forecast_locations(latest_forecasts),
-    transform = map(latest_forecasts)
+    transform = map(latest_forecasts,id_var = !!paste0(ids,"_"), .id=id_var)
   ),
-
+  
   latest_locations = target(
     dplyr::bind_rows(latest_locations_by_model),
     transform = combine(latest_locations_by_model)
   ),
-
+  
   # Quantiles
   latest_quantiles_by_model = target(
     get_forecast_quantiles(latest_forecasts),
-    transform = map(latest_forecasts)
+    transform = map(latest_forecasts,id_var = !!paste0(ids,"_"), .id=id_var)
   ),
-
+  
   latest_quantiles_summary_by_model = target(
     get_forecast_quantiles_summary(latest_quantiles_by_model),
-    transform = map(latest_quantiles_by_model)
+    transform = map(latest_quantiles_by_model,id_var = !!paste0(ids,"_"), .id=id_var)
   ),
-
+  
   latest_quantiles = target(
     dplyr::bind_rows(latest_quantiles_by_model),
     transform = combine(latest_quantiles_by_model)
   ),
-
+  
   latest_quantiles_summary = target(
     dplyr::bind_rows(latest_quantiles_summary_by_model),
     transform = combine(latest_quantiles_summary_by_model)
   ),
-
+  
   # Targets
-  # include all forecasts
-   latest_targets_by_model = target(
-     get_forecast_targets(raw_data_by_model),
-     transform = map(raw_data_by_model)
-   ),
-   
-   latest_targets = target(
-     dplyr::bind_rows(latest_targets_by_model) %>%
-       dplyr::select(team_model, forecast_date, type, max_n, target) %>%
-       dplyr::arrange(team_model, forecast_date, type, target),
-     transform = combine(latest_targets_by_model)
-   ),
-   
-   # Plot data
-   latest_plot_data_by_model = target(
-     get_latest_plot_data(latest_forecasts),
-     transform = map(latest_forecasts)
-   ),
-   
-   latest_plot_data = target(
-     dplyr::bind_rows(latest_plot_data_by_model),
-     transform = combine(latest_plot_data_by_model)
-   ),
-   
+  latest_targets_by_model = target(
+    get_forecast_targets(latest_forecasts),
+    transform = map(latest_forecasts,id_var = !!paste0(ids,"_"), .id=id_var)
+  ),
+  
+  latest_targets = target(
+    dplyr::bind_rows(latest_targets_by_model) %>%
+      dplyr::select(team_model, forecast_date, type, max_n, target) %>%
+      dplyr::arrange(team_model, forecast_date, type, target),
+    transform = combine(latest_targets_by_model)
+  ),
+  
+  # Plot data
+  latest_plot_data_by_model = target(
+    get_latest_plot_data(latest_forecasts),
+    transform = map(latest_forecasts,id_var = !!paste0(ids,"_"), .id=id_var)
+  ),
+  
+  latest_plot_data = target(
+    dplyr::bind_rows(latest_plot_data_by_model),
+    transform = combine(latest_plot_data_by_model)
+  ),
+  
   ##############
   # Truth
   inc_jhu = get_truth(file_in("data-truth/truth-Incident Deaths.csv"),                     "inc", "JHU-CSSE"),
@@ -104,7 +100,7 @@ plan = drake::drake_plan(
   inc_cases_nyt = get_truth(file_in("data-truth/nytimes/truth_nytimes-Incident Cases.csv"),     "inc", "NYTimes"),
   inc_cases_usa = get_truth(file_in("data-truth/usafacts/truth_usafacts-Incident Cases.csv"),   "inc", "USAFacts"),
   inc_cases_jhu = get_truth(file_in("data-truth/truth-Incident Cases.csv"),   "inc", "JHU-CSSE"),
-
+  
   truth = combine_truth(inc_jhu, inc_usa, inc_nyt,
                         cum_jhu, cum_usa, cum_nyt,
                         inc_cases_nyt,inc_cases_usa,inc_cases_jhu) %>%
@@ -113,7 +109,7 @@ plan = drake::drake_plan(
   ##############
 )
 
-shiny <- c("raw_data_by_model",
+shiny <- c("all_forecast_dates",
            "truth",
            "latest_locations",
            "latest_targets",

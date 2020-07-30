@@ -12,8 +12,8 @@ Software requirements: R 4.0 or higher and the following packages:
 
 If you want to try out this new version of the shiny app you can use 
 
-    drake::r_make("code/shiny/_drake.R") # this line can take over 10 minutes to run
-    source("code/shiny/app.R")
+    drake::r_make("code/shiny/shiny_internal/_drake.R") # this line can take over 10 minutes to run
+    source("code/shiny/shiny_internal/app.R")
     shinyApp(ui = ui, server = server) # if it doesn't automatically run
     
 from the base folder of the repository.
