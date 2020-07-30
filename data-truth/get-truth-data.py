@@ -19,8 +19,8 @@ def read_fips_codes(filepath):
   fips_codes = fips_codes.drop('abbreviation',axis=1)
 
   fips_codes.rename({'state_abbr': 'abbreviation'}, axis=1, inplace=True)
-
-  # take out DC county
+  
+  # took out DC county
   fips_codes = fips_codes[fips_codes.location != '11001']
   return fips_codes
 
