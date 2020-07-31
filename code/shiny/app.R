@@ -1,6 +1,8 @@
 library("drake")
 library("tidyverse")
 library("shiny")
+library("tidyr")
+library("dplyr")
 library("DT")
 library("shinyWidgets")
 
@@ -24,18 +26,18 @@ ui <- navbarPage(
            DT::DTOutput("latest_locations")),
   
 
-  tabPanel("Latest targets",  
+  tabPanel("Submissions",  
            sidebarLayout(
              sidebarPanel(
-               shinyWidgets::pickerInput("targets_team_model","Team", sort(unique(latest_targets$team_model)),
+               shinyWidgets::pickerInput("submissions_team_model","Team", sort(unique(latest_targets$team_model)),
                                          selected =sort(unique(latest_targets$team_model)),
                                          options = list(`actions-box` = TRUE), multiple = TRUE),
-               selectInput("targets_type","Type", sort(unique(latest_targets$type))),
-               selectInput("targets_target","Target", sort(unique(latest_targets$target))),
-               dateRangeInput("targets_dates", "Date range", start = "2020-03-15", end = Sys.Date())
+               selectInput("submissions_type","Type", sort(unique(latest_targets$type))),
+               selectInput("submissions_target","Target", sort(unique(latest_targets$target))),
+               dateRangeInput("submissions_dates", "Date range", start = "2020-03-15", end = Sys.Date())
              ), 
              mainPanel(
-               plotOutput("latest_targets")
+               plotOutput("submissions")
              )
            )
   ),
@@ -89,7 +91,7 @@ ui <- navbarPage(
   
   tabPanel("Help",
            h3("Explore tabs"),
-           h5("Latest targets: summarizes `Latest` to see which targets are included"),
+           h5("Submissions: summarizes forecasts submissions for each team and each target"),
            h5("Latest locations: summarizes `Latest` to see which locations are included"),
            h5("Latest quantiles: summarizes `Latest` to see which quantiles are included"),
            h5("Latest Viz: shows visualization for forecast for a selected location"),
@@ -277,21 +279,21 @@ server <- function(input, output, session) {
   },height ="auto")
 
   #############################################################################
-  # New Latest Targets: Filter data based on user input
-   latest_t_t <- reactive({latest_targets %>% filter( team_model         %in% input$targets_team_model) })
-   latest_t_tmty    <- reactive({ latest_t_t() %>% filter( type    %in%  input$targets_type) })
-   latest_t_tmtyt    <- reactive({ latest_t_tmty()  %>% filter(target     %in% input$targets_target) })
+  # Submissions: Filter data based on user input
+   latest_s_t <- reactive({latest_targets %>% filter( team_model         %in% input$submissions_team_model) })
+   latest_s_tmty    <- reactive({ latest_s_t() %>% filter( type    %in%  input$submissions_type) })
+   latest_s_tmtyt    <- reactive({ latest_s_tmty()  %>% filter(target     %in% input$submissions_target) })
   
    
    observe({
-     types <- sort(unique(latest_t_t()$type))
-     updateSelectInput(session, "targets_type", choices = types, selected = types[1])
+     types <- sort(unique(latest_s_t()$type))
+     updateSelectInput(session, "submissions_type", choices = types, selected = types[1])
    })
   
    
    observe({
-     targets <- sort(unique(latest_t_tmty()$target))
-     updateSelectInput(session, "targets_target", choices = targets, 
+     targets <- sort(unique(latest_s_tmty()$target))
+     updateSelectInput(session, "submissions_target", choices = targets, 
                        selected = ifelse("wk ahead cum death" %in% targets, 
                                          "wk ahead cum death", 
                                          targets[1]))
@@ -302,9 +304,9 @@ server <- function(input, output, session) {
        session$clientData[[output_width_name]] 
      }
    }
-  output$latest_targets <-shiny::renderPlot({
+  output$submissions <-shiny::renderPlot({
   
-    d = reshape2::melt(latest_t_tmtyt(),id.vars=c("team_model","type","target","max_n")) 
+    d = reshape2::melt(latest_s_tmtyt(),id.vars=c("team_model","type","target","max_n")) 
     dates = unique(d$value)
     dates_axis =list(seq(as.Date(min(dates))-1, Sys.Date(),"day"))
     
@@ -317,39 +319,29 @@ server <- function(input, output, session) {
       dplyr:: group_by(type,target,data,team_model) %>%
       dplyr:: summarise(color = sum(color)) %>%
       # start date is the sunday of previous week
-      # data is date? 
       dplyr:: mutate(start_date = lubridate::ceiling_date
                      (lubridate::ymd(data), unit = "week") - 7) %>%
       # end date is the saturday of current week 
       dplyr:: mutate(end_date = lubridate::ceiling_date
                      (lubridate::ymd(data), unit = "week") - 1) %>%
-      
       # if end_date is bigger than current system time, replace it with system time 
-      #not working 
       dplyr:: mutate(end_date = dplyr::if_else(end_date > Sys.Date(), Sys.Date(), end_date)) %>%
-      
-      dplyr:: group_by(type, target, team_model, start_date, end_date) %>%
+      dplyr:: mutate(width = as.numeric(end_date -start_date+1))%>%
+      dplyr:: group_by(target, team_model, start_date, end_date,width) %>%
       # total submission count of the week 
-      dplyr:: summarise(color = sum(color)) %>%
-  
-    
-    # a column for start_date (sunday), a column for end_date (saturday) before sum(color)
-    # use geom_rect
-    
-    
-    ggplot(d,aes(y=team_model,fill = as.factor(color), xmin = start_date, xmax= end_date))+
-      geom_rect(colour="black",size=0.25) +
+      dplyr:: summarise(color = sum(color))
+                        
+    ggplot(d,aes(x = start_date, y = team_model))+
+      geom_tile(aes(fill = color,width = width),colour="black",size=0.25) +
+      scale_fill_gradient("submission counts",low = "white", high = "chartreuse4",breaks = c(0:7))+
       scale_y_discrete(expand=c(0,0))+
-      #scale_x_date(expand=c(0,0),breaks = "1 day",date_labels="%m/%d",limits =c(input$targets_dates[1], input$targets_dates[2]))+
-      theme(axis.text.x = element_text(angle = 90, vjust = 0.5))+
-      #scale_fill_manual(values = c("white", "chartreuse2"),name = "Status", labels = c("not submitted", "sumbitted"))+
+      scale_x_date(expand=c(0,0),breaks = c(d$start_date),
+                   labels=function(x) paste(format(x,format = "%m-%d"),format(d$end_date,format = "%m-%d"),sep = '-'),
+                   limits =c(input$targets_dates[1], input$targets_dates[2]))+
+      theme(axis.text.x = element_text(angle = 60, vjust = 0.5))+
       labs(x = "Forecast Dates", y="Team Model")+
       theme(legend.position="bottom")
-  },height = set_shiny_plot_height(session, "output_latest_targets_width"))
-  
-  
-  
-  output$all_data         <- DT::renderDT(all_data,         filter = "top")
+  },height = set_shiny_plot_height(session, "output_submissions_width"))
 }
 
 shinyApp(ui = ui, server = server)
