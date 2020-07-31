@@ -309,21 +309,40 @@ server <- function(input, output, session) {
     dates_axis =list(seq(as.Date(min(dates))-1, Sys.Date(),"day"))
     
     d = d %>%
-      group_by_all() %>% 
+      dplyr:: group_by_all() %>% 
       nest %>% 
-      mutate(data = dates_axis) %>%
+      dplyr:: mutate(data = dates_axis) %>%
       unnest (cols = c(data)) %>%
-      mutate(color = if_else(as.Date(value) == as.Date(data), 1, 0)) %>%
-      group_by(type,target,data,team_model) %>%
-      summarise(color = sum(color))
+      dplyr:: mutate(color = if_else(as.Date(value) == as.Date(data), 1, 0)) %>%
+      dplyr:: group_by(type,target,data,team_model) %>%
+      dplyr:: summarise(color = sum(color)) %>%
+      # start date is the sunday of previous week
+      # data is date? 
+      dplyr:: mutate(start_date = lubridate::ceiling_date
+                     (lubridate::ymd(data), unit = "week") - 7) %>%
+      # end date is the saturday of current week 
+      dplyr:: mutate(end_date = lubridate::ceiling_date
+                     (lubridate::ymd(data), unit = "week") - 1) %>%
+      
+      # if end_date is bigger than current system time, replace it with system time 
+      #not working 
+      dplyr:: mutate(end_date = dplyr::if_else(end_date > Sys.Date(), Sys.Date(), end_date)) %>%
+      
+      dplyr:: group_by(type, target, team_model, start_date, end_date) %>%
+      # total submission count of the week 
+      dplyr:: summarise(color = sum(color)) %>%
+  
+    
+    # a column for start_date (sunday), a column for end_date (saturday) before sum(color)
+    # use geom_rect
     
     
-    ggplot(d,aes(x=as.Date(data), y=team_model,fill = as.factor(color)))+
-      geom_tile(colour="black",size=0.25) +
+    ggplot(d,aes(y=team_model,fill = as.factor(color), xmin = start_date, xmax= end_date))+
+      geom_rect(colour="black",size=0.25) +
       scale_y_discrete(expand=c(0,0))+
-      scale_x_date(expand=c(0,0),breaks = "1 day",date_labels="%m/%d",limits =c(input$targets_dates[1], input$targets_dates[2]))+
+      #scale_x_date(expand=c(0,0),breaks = "1 day",date_labels="%m/%d",limits =c(input$targets_dates[1], input$targets_dates[2]))+
       theme(axis.text.x = element_text(angle = 90, vjust = 0.5))+
-      scale_fill_manual(values = c("white", "chartreuse2"),name = "Status", labels = c("not submitted", "sumbitted"))+
+      #scale_fill_manual(values = c("white", "chartreuse2"),name = "Status", labels = c("not submitted", "sumbitted"))+
       labs(x = "Forecast Dates", y="Team Model")+
       theme(legend.position="bottom")
   },height = set_shiny_plot_height(session, "output_latest_targets_width"))
