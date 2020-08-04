@@ -5,6 +5,7 @@ library("tidyr")
 library("dplyr")
 library("DT")
 library("shinyWidgets")
+library("scales")
 
 options(DT.options = list(pageLength = 50))
 
@@ -325,22 +326,30 @@ server <- function(input, output, session) {
       dplyr:: mutate(end_date = lubridate::ceiling_date
                      (lubridate::ymd(data), unit = "week") - 1) %>%
       # if end_date is bigger than current system time, replace it with system time 
-      dplyr:: mutate(end_date = dplyr::if_else(end_date > Sys.Date(), Sys.Date(), end_date)) %>%
+      #dplyr:: mutate(end_date = dplyr::if_else(end_date > Sys.Date(), Sys.Date(), end_date)) %>%
       dplyr:: mutate(width = as.numeric(end_date -start_date+1))%>%
       dplyr:: group_by(target, team_model, start_date, end_date,width) %>%
       # total submission count of the week 
-      dplyr:: summarise(color = sum(color))
+      dplyr:: summarise(color = sum(color)) %>%
+      # get total submission for each team for each target
+      dplyr:: group_by(target, team_model) %>%
+      dplyr:: mutate(total = sum(color)) %>%
+      dplyr:: ungroup()
                         
-    ggplot(d,aes(x = start_date, y = team_model))+
+    ggplot(d,aes(x = start_date, y = reorder(team_model,total)))+
       geom_tile(aes(fill = color,width = width),colour="black",size=0.25) +
-      scale_fill_gradient("submission counts",low = "white", high = "chartreuse4",breaks = c(0:7))+
-      scale_y_discrete(expand=c(0,0))+
-      scale_x_date(expand=c(0,0),breaks = c(d$start_date),
-                   labels=function(x) paste(format(x,format = "%m-%d"),format(d$end_date,format = "%m-%d"),sep = '-'),
-                   limits =c(input$targets_dates[1], input$targets_dates[2]))+
-      theme(axis.text.x = element_text(angle = 60, vjust = 0.5))+
-      labs(x = "Forecast Dates", y="Team Model")+
-      theme(legend.position="bottom")
+      scale_fill_gradientn("submission counts",colours = c("white", "chartreuse4"),
+                           values= scales::rescale(c(0,1,7)),breaks = c(0:7), limits= c(0,7))+
+      # offset to take off because geom_tile plots on the center of each tile
+      coord_cartesian(xlim = c(input$submissions_dates[1]-3.5, input$submissions_dates[2]-3.5))+
+      scale_x_date(expand=c(0,0.2),
+                   breaks =d$start_date,
+                   labels=function(x) paste(format(x,format = "%m-%d"),format(d$end_date,format = "%m-%d"),sep = '-'))+
+      # add counts in the center of cell
+      #geom_text(aes(label=color), color="grey", size=3)+
+      labs(x = "Forecast Dates", y="Model Abbreviation")+
+      theme(axis.text.x = element_text(angle = 60, vjust = 0.5),legend.position="bottom")
+      
   },height = set_shiny_plot_height(session, "output_submissions_width"))
 }
 
