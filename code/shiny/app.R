@@ -57,7 +57,7 @@ ui <- navbarPage(
   tabPanel("Latest Viz",
            sidebarLayout(
              sidebarPanel(
-               selectInput("team_model","Team_Model", sort(unique(latest_plot_data$team_model )), 
+               selectInput("team_model","Model Abbreviation", sort(unique(latest_plot_data$team_model )), 
                            shiny::getShinyOption("default_team_model",default = "IHME-CurveFit")),
                selectInput("target","Target", sort(unique(latest_plot_data$simple_target))),
                selectInput("abbreviation","Location", sort(unique(latest_plot_data$abbreviation   ))),
