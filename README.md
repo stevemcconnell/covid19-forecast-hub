@@ -1,5 +1,5 @@
 # COVID-19 Forecast Hub 
-<img src="https://travis-ci.com/reichlab/covid19-forecast-hub.svg?branch=master">
+![Node.js CI](https://github.com/reichlab/covid19-forecast-hub/workflows/Node.js%20CI/badge.svg)
 
 The goal of this repository is to create a standardized set of data on forecasts from teams making projections of cumulative and incident deaths and incident hospitalizations due to COVID-19 in the United States. This repository is the data source for [the official CDC COVID-19 Forecasting page](https://www.cdc.gov/coronavirus/2019-ncov/covid-data/forecasting-us.html). This project to collect, standardize, visualize and synthesize forecast data has been led by the CDC-funded UMass-Amherst Influenza Forecasting Center of Excellence based at the [Reich Lab](https://reichlab.io/), with [contributions from many others](https://github.com/reichlab/covid19-forecast-hub/blob/master/README.md#the-covid-forecast-hub-team). 
 
@@ -88,7 +88,7 @@ repository are (with data reuse license):
  - [epiforecasts](https://github.com/epiforecasts/covid-us-deaths) (MIT)
  - [GLEAM from Northeastern University](https://www.gleamproject.org/covid-19) (CC-BY-4.0)
  - [Georgia Institute of Technology](https://www.cc.gatech.edu/~badityap/covid.html) (CC-BY-4.0)
- - [Georgia Institute of Technology - Center for Health and Humanitarian Systems](https://github.com/pkeskinocak/COVID19GA) (CC-BY-4.0)
+ - [Georgia Institute of Technology - Center for Health and Humanitarian Systems](https://github.com/pkeskinocak/Center-for-Health-and-Humanitarian-Systems/tree/master/COVID-19) (CC-BY-4.0)
  - [IHME](https://covid19.healthdata.org/united-states-of-america) (CC-AT-NC-4.0)
  - [Iowa State University](http://www.covid19dashboard.us/) (CC-BY-4.0)
  - [Iowa State University and Peking University](https://yumouqiu.shinyapps.io/covid-predict/) (CC-BY-4.0)
