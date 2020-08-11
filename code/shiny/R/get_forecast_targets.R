@@ -5,6 +5,7 @@
 #' 
 get_forecast_targets <- function(d) {
   d %>%
+    # add location
     dplyr::group_by(team_model, forecast_date, type, unit, ahead, inc_cum, death_cases) %>%
     dplyr::summarize(max_n = max(as.numeric(n_unit)), .groups = "keep") %>%
     dplyr::ungroup() %>%
