@@ -4,38 +4,22 @@ library("shiny")
 library("tidyr")
 library("dplyr")
 library("data.table")
-library("DT")
-library("shinyWidgets")
 library("scales")
 library("reticulate")
 
-# set max upload size to be 30 MB
+
+# Set max upload size to be 30 MB
 options(shiny.maxRequestSize=30*1024^2)
 
 R.utils::sourceDirectory("code/shiny/R",modifiedOnly=FALSE)
 
 
-source("code/processing-fxns/get_next_saturday.R")
+# Get validation code
+validation_code = reticulate::import_from_path("test_formatting", path = "code/validation/")
 
-#fourweek_date = get_next_saturday(Sys.Date() + 3*7)
-
-# file to plot
-#file_path = "data-processed/COVIDhub-baseline/2020-08-03-COVIDhub-baseline.csv"
-
-
-# run python validation file
-
-
-# get data for viz 
 locations = get_locations(file = "data-locations/locations.csv")
 
-# forecast = read_forecast_file(f = file_path) %>%
-#   dplyr::left_join(locations, by = c("location")) %>%
-#   tidyr::separate(target, into=c("n_unit","unit","ahead","inc_cum","death_cases"),remove = FALSE)
-# 
-# latest_plot_data = get_latest_plot_data(d = forecast)
-
-# Truth
+# Collect truth files
 inc_jhu = get_truth(file = "data-truth/truth-Incident Deaths.csv",                     "inc", "JHU-CSSE")
 cum_jhu = get_truth(file = "data-truth/truth-Cumulative Deaths.csv",                   "cum", "JHU-CSSE")
 inc_usa = get_truth(file ="data-truth/usafacts/truth_usafacts-Incident Deaths.csv",   "inc", "USAFacts")
@@ -54,7 +38,7 @@ truth = combine_truth(inc_jhu, inc_usa, inc_nyt,
 
 truth_sources = unique(truth$source)
 
-# create viz 
+
 ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(
@@ -77,43 +61,65 @@ ui <- fluidPage(
 
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {
+ 
+  # Run validation code once the file is in 
+  validation_output = eventReactive(input$forecast,{
+    showNotification("Running validation...",type = "message",duration = 7)
+    
+    validation_code$validate_forecast_file(filepath  = input$forecast$datapath)
+  })
   
-  # the modal dialog where the user can upload files.
-  validate_modal <- modalDialog(
-    title = "Validate Forecast File",
-    easyClose = F,
-    footer = tagList(
-      actionButton("validation","Run Validation")
-    )
-  )
+  # Condition on validation result, show message dialog to proceed
+  observe({
+    if (validation_output()[[1]]){
+      showModal(modalDialog(
+        title = "Forecast File Validation Result",
+        paste("Error(s):\n",validation_output()[[2]]),
+        easyClose = TRUE,
+        footer = tagList(
+          actionButton("close","Close App")
+        )
+      ))
+      
+    } else {
+      showModal(modalDialog(
+        title = "Forecast File Validation Result",
+        "Your file has passed the validation check.",
+        easyClose = TRUE,
+        footer =  tagList(
+          actionButton("viz","See Visulization")
+        )
+      ))
+    }
+  })
   
-  latest_plot_data = eventReactive(input$forecast,{
+  # Create plot data
+  latest_plot_data = eventReactive(input$viz,{
+    removeModal()
+    
+    showNotification("Setting up visualization...",type = "message")
+    
     forecast <- read_forecast_file(input$forecast$datapath) %>%
       # put in the right model_abbr
       dplyr::mutate(team_model = sub("(?:[^-\n]+-){3}(.*)\\.csv", "\\1",input$forecast$name)) %>%
       dplyr::left_join(locations, by = c("location")) %>%
       tidyr::separate(target, into=c("n_unit","unit","ahead","inc_cum","death_cases"),remove = FALSE)
-    
+
     get_latest_plot_data(d = forecast)
     
   })
   
-  observeEvent(latest_plot_data(),{
-    showModal(validate_modal)
+  observeEvent(input$close, {
+   stopApp()
   })
-  
-  observeEvent(input$validation, {
-    #validate file 
-    # call python file
-    # shinyFeedback::feedbackWarning
-    
+ 
+  # Update filter once plot data is created
+  observeEvent(latest_plot_data(), {
   
     updateSelectInput(session, "target",choices = sort(unique(latest_plot_data()$simple_target)), selected =sort(unique(latest_plot_data()$simple_target))[1])
     
     updateDateRangeInput(session, "dates",start = "2020-03-01", end =  max(latest_plot_data()$target_end_date))
-    
-    
-    removeModal()
+  
   })  
   
     
@@ -149,8 +155,6 @@ server <- function(input, output, session) {
               grepl(input_simple_target, simple_target),
               source %in% input$sources)
    })
-   
-   
    
    
    output$latest_plot      <- shiny::renderPlot({
