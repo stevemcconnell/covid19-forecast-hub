@@ -71,8 +71,8 @@ plan = drake::drake_plan(
   # Targets
   # include all forecasts
    latest_targets_by_model = target(
-     get_forecast_targets(raw_data_by_model),
-     transform = map(raw_data_by_model)
+     get_forecast_targets(latest_forecasts),
+     transform = map(latest_forecasts)
    ),
    
    latest_targets = target(

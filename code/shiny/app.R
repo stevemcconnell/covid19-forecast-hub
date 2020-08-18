@@ -26,6 +26,9 @@ ui <- navbarPage(
   tabPanel("Latest locations", 
            DT::DTOutput("latest_locations")),
   
+  tabPanel("Latest targets", 
+           DT::DTOutput("latest_targets")),
+  
 
   tabPanel("Submissions",  
            sidebarLayout(
@@ -107,8 +110,9 @@ ui <- navbarPage(
 
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {
-
+  
   output$latest_locations <- DT::renderDT(latest_locations, filter = "top")
+  output$latest_targets   <- DT::renderDT(latest_targets,   filter = "top")
   output$latest_quantiles <- DT::renderDT(latest_quantiles, filter = "top")
   output$latest_quantiles_summary <- DT::renderDT(latest_quantiles_summary, filter = "top")
   
