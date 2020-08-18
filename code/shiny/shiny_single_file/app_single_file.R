@@ -6,6 +6,7 @@ library("dplyr")
 library("data.table")
 library("scales")
 library("reticulate")
+library("shinyWidgets")
 
 
 # Set max upload size to be 30 MB
@@ -34,7 +35,8 @@ truth = combine_truth(inc_jhu, inc_usa, inc_nyt,
                       cum_jhu, cum_usa, cum_nyt,
                       inc_cases_nyt,inc_cases_usa,inc_cases_jhu) %>%
   dplyr::left_join(locations, by = c("location"))%>%
-  dplyr::mutate(location_name = coalesce(location_name.x, location_name.y))
+  dplyr::mutate(location_name = coalesce(location_name.x, location_name.y)) %>%
+  dplyr::mutate(state_county = paste(abbreviation,location_name, sep = " - "))
 
 truth_sources = unique(truth$source)
 
@@ -45,8 +47,8 @@ ui <- fluidPage(
       fileInput("forecast", "Choose Forecast File",multiple = FALSE,accept = c(".csv")),
       hr(),
       selectInput("target","Target", choices = 'NA'),
-      selectInput("abbreviation","Location",choices = 'NA'),
-      selectInput("county","County", choices = 'NA'),
+      shinyWidgets::pickerInput("abbreviation","Location",choices = 'NA', options = list(`actions-box` = TRUE), multiple = TRUE),
+      shinyWidgets::pickerInput("county","County", choices = 'NA', options = list(`actions-box` = TRUE), multiple = TRUE),
       selectInput("sources","Truth sources", truth_sources, selected = "JHU-CSSE", multiple = TRUE),
       dateRangeInput("dates","Date range", start = "2020-03-01", end =  Sys.Date())
       ), 
@@ -128,7 +130,7 @@ server <- function(input, output, session) {
   
    observe({
      abbreviations <- sort(unique(latest_tmt()$abbreviation))
-     updateSelectInput(session, "abbreviation", choices = abbreviations, 
+     shinyWidgets::updatePickerInput(session, "abbreviation", choices = abbreviations, 
                        selected = ifelse("US" %in% abbreviations, 
                                          "US", 
                                          abbreviations[1]))
@@ -136,31 +138,39 @@ server <- function(input, output, session) {
    
    observe({
      counties <- sort(unique(latest_tmtl()$location_name))
-     updateSelectInput(session, "county", choices = counties, selected =counties[1])
+     shinyWidgets::updatePickerInput(session, "county", choices = counties, selected =counties)
    })
    
    
  
    latest_tmt  <- reactive({ latest_plot_data()     %>% filter(simple_target == input$target) })
-   latest_tmtl <- reactive({ latest_tmt()     %>% filter(abbreviation    == input$abbreviation) })
-   latest_tmtlc <- reactive({ latest_tmtl()     %>% filter(location_name    == input$county) })
+   latest_tmtl <- reactive({ latest_tmt()     %>% filter(abbreviation   %in%  input$abbreviation) })
+   latest_tmtlc <- reactive({ latest_tmtl()     %>% filter(location_name  %in% input$county) })
    
    truth_plot_data <- reactive({ 
      input_simple_target <- unique(paste(
        latest_tmtlc()$unit, "ahead", latest_tmtlc()$inc_cum, latest_tmtlc()$death_cases))
      
      tmp = truth %>% 
-       filter(abbreviation == input$abbreviation,
-              location_name ==input$county,
+       filter(abbreviation %in% input$abbreviation,
+              location_name %in% input$county,
               grepl(input_simple_target, simple_target),
               source %in% input$sources)
    })
    
    
+   set_shiny_plot_height <- function(session, output_width_name){
+     function() { 
+       session$clientData[[output_width_name]] 
+     }
+   }
+   
    output$latest_plot      <- shiny::renderPlot({
-    d    <- latest_tmtlc()
+    d    <- latest_tmtlc() %>%
+      dplyr::mutate(state_county = paste(abbreviation,location_name, sep = " - "))
     team_model <- unique(d$team_model)
     forecast_date <- unique(d$forecast_date)
+
     
     ggplot(d, aes(x = target_end_date)) +
       geom_ribbon(aes(ymin = `0.025`, ymax = `0.975`, fill = "95%")) +
@@ -186,13 +196,15 @@ server <- function(input, output, session) {
                                        "NYTimes"  = 3)) +
 
       xlim(input$dates) +
+      
+      facet_wrap(~state_county,ncol = 3,labeller = label_wrap_gen(multi_line=FALSE))+
 
       labs(x = "Date", y="Number",
            title = team_model,
            subtitle = paste("Forecast date:", forecast_date)) +
       theme_bw() +
       theme(plot.subtitle  = element_text(color = ifelse(Sys.Date() - forecast_date > 6, "red", "black")))
-  })
+  },height = set_shiny_plot_height(session, "output_latest_plot_width"))
 }
 
 shinyApp(ui = ui, server = server)
