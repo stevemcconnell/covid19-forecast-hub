@@ -16,6 +16,7 @@ loadd(truth)
 truth_sources = unique(truth$source)
 loadd(latest_locations)
 loadd(latest_targets)
+loadd(plot_submissions)
 loadd(latest_quantiles)
 loadd(latest_quantiles_summary)
 loadd(latest_plot_data)
@@ -33,11 +34,11 @@ ui <- navbarPage(
   tabPanel("Submissions",  
            sidebarLayout(
              sidebarPanel(
-               shinyWidgets::pickerInput("submissions_team_model","Team", sort(unique(latest_targets$team_model)),
-                                         selected =sort(unique(latest_targets$team_model)),
+               shinyWidgets::pickerInput("submissions_team_model","Team", sort(unique(plot_submissions$team_model)),
+                                         selected =sort(unique(plot_submissions$team_model)),
                                          options = list(`actions-box` = TRUE), multiple = TRUE),
-               selectInput("submissions_type","Type", sort(unique(latest_targets$type))),
-               selectInput("submissions_target","Target", sort(unique(latest_targets$target))),
+               selectInput("submissions_type","Type", sort(unique(plot_submissions$type))),
+               selectInput("submissions_target","Target", sort(unique(plot_submissions$target))),
                dateRangeInput("submissions_dates", "Date range", start = "2020-03-15", end = Sys.Date())
              ), 
              mainPanel(
@@ -285,7 +286,7 @@ server <- function(input, output, session) {
 
   #############################################################################
   # Submissions: Filter data based on user input
-   latest_s_t <- reactive({latest_targets %>% filter( team_model         %in% input$submissions_team_model) })
+   latest_s_t <- reactive({plot_submissions %>% filter( team_model         %in% input$submissions_team_model) })
    latest_s_tmty    <- reactive({ latest_s_t() %>% filter( type    %in%  input$submissions_type) })
    latest_s_tmtyt    <- reactive({ latest_s_tmty()  %>% filter(target     %in% input$submissions_target) })
   
@@ -310,47 +311,20 @@ server <- function(input, output, session) {
      }
    }
   output$submissions <-shiny::renderPlot({
-  
-    d = reshape2::melt(latest_s_tmtyt(),id.vars=c("team_model","type","target","max_n")) 
-    dates = unique(d$value)
-    dates_axis =list(seq(as.Date(min(dates))-1, Sys.Date(),"day"))
-    
-    d = d %>%
-      dplyr:: group_by_all() %>% 
-      nest %>% 
-      dplyr:: mutate(data = dates_axis) %>%
-      unnest (cols = c(data)) %>%
-      dplyr:: mutate(color = if_else(as.Date(value) == as.Date(data), 1, 0)) %>%
-      dplyr:: group_by(type,target,data,team_model) %>%
-      dplyr:: summarise(color = sum(color)) %>%
-      # start date is the sunday of previous week
-      dplyr:: mutate(start_date = lubridate::ceiling_date
-                     (lubridate::ymd(data), unit = "week") - 7) %>%
-      # end date is the saturday of current week 
-      dplyr:: mutate(end_date = lubridate::ceiling_date
-                     (lubridate::ymd(data), unit = "week") - 1) %>%
-      # if end_date is bigger than current system time, replace it with system time 
-      #dplyr:: mutate(end_date = dplyr::if_else(end_date > Sys.Date(), Sys.Date(), end_date)) %>%
-      dplyr:: mutate(width = as.numeric(end_date -start_date+1))%>%
-      dplyr:: group_by(target, team_model, start_date, end_date,width) %>%
-      # total submission count of the week 
-      dplyr:: summarise(color = sum(color)) %>%
-      # get total submission for each team for each target
-      dplyr:: group_by(target, team_model) %>%
-      dplyr:: mutate(total = sum(color)) %>%
-      dplyr:: ungroup()
+    d = latest_s_tmtyt()
                         
     ggplot(d,aes(x = start_date, y = reorder(team_model,total)))+
       geom_tile(aes(fill = color,width = width),colour="black",size=0.25) +
-      scale_fill_gradientn("submission counts",colours = c("white", "chartreuse4"),
+      scale_fill_gradientn("Submission Counts",colours = c("white", "chartreuse4"),
                            values= scales::rescale(c(0,1,7)),breaks = c(0:7), limits= c(0,7))+
-      # offset to take off because geom_tile plots on the center of each tile
-      coord_cartesian(xlim = c(input$submissions_dates[1]-3.5, input$submissions_dates[2]-3.5))+
-      scale_x_date(expand=c(0,0.2),
+      scale_x_date(expand=c(0,0),
                    breaks =d$start_date,
-                   labels=function(x) paste(format(x,format = "%m-%d"),format(d$end_date,format = "%m-%d"),sep = '-'))+
-      # add counts in the center of cell
-      #geom_text(aes(label=color), color="grey", size=3)+
+                   labels=function(x) paste(format(x,format = "%m-%d"),format(d$end_date,format = "%m-%d"),sep = '-'),
+                   # Take off offset because geom_tile plots on the center of each date
+                   limits = c(lubridate::ceiling_date
+                            (lubridate::ymd(input$submissions_dates[1]), unit = "week") - 7-3.5, 
+                            lubridate::ceiling_date
+                            (lubridate::ymd(input$submissions_dates[2]), unit = "week") - 1-2))+
       labs(x = "Forecast Dates", y="Model Abbreviation")+
       theme(axis.text.x = element_text(angle = 60, vjust = 0.5),legend.position="bottom")
       

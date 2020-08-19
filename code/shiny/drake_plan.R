@@ -66,32 +66,50 @@ plan = drake::drake_plan(
   latest_quantiles_summary = target(
     dplyr::bind_rows(latest_quantiles_summary_by_model),
     transform = combine(latest_quantiles_summary_by_model)
-  ),
-
+  ), 
+  
   # Targets
-  # include all forecasts
-   latest_targets_by_model = target(
+  # Only include latest forecast from each model
+  latest_targets_by_model = target(
      get_forecast_targets(latest_forecasts),
      transform = map(latest_forecasts)
-   ),
+  ),
    
-   latest_targets = target(
-     dplyr::bind_rows(latest_targets_by_model) %>%
-       dplyr::select(team_model, forecast_date, type, max_n, target) %>%
-       dplyr::arrange(team_model, forecast_date, type, target),
-     transform = combine(latest_targets_by_model)
-   ),
+  latest_targets = target(
+    dplyr::bind_rows(latest_targets_by_model) %>%
+      dplyr::select(team_model, forecast_date, type, max_n, target) %>%
+      dplyr::arrange(team_model, forecast_date, type, target),
+    transform = combine(latest_targets_by_model)
+  ),
+  
+  # Submissions
+  # Include all forecasts from each model
+  submissions_by_model = target(
+    get_forecast_targets(raw_data_by_model),
+    transform = map(raw_data_by_model)
+  ),
+  
+  submissions = target(
+    dplyr::bind_rows(submissions_by_model) %>%
+      dplyr::select(team_model, forecast_date, type, max_n, target) %>%
+      dplyr::arrange(team_model, forecast_date, type, target),
+    transform = combine(submissions_by_model)
+  ),
+  
+  # Organize submissions to plot
+  plot_submissions = get_submissions(submissions),
+
    
-   # Plot data
-   latest_plot_data_by_model = target(
-     get_latest_plot_data(latest_forecasts),
-     transform = map(latest_forecasts)
-   ),
+  # Plot data
+  latest_plot_data_by_model = target(
+    get_latest_plot_data(latest_forecasts),
+    transform = map(latest_forecasts)
+  ),
    
-   latest_plot_data = target(
-     dplyr::bind_rows(latest_plot_data_by_model),
-     transform = combine(latest_plot_data_by_model)
-   ),
+  latest_plot_data = target(
+    dplyr::bind_rows(latest_plot_data_by_model),
+    transform = combine(latest_plot_data_by_model)
+  ),
    
   ##############
   # Truth
@@ -117,6 +135,7 @@ shiny <- c("raw_data_by_model",
            "truth",
            "latest_locations",
            "latest_targets",
+           "plot_submissions",
            "latest_quantiles",
            "latest_quantiles_summary",
            "latest_plot_data")
