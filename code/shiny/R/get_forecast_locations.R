@@ -1,4 +1,4 @@
-#' Gets latest model forecast
+#' Summarize locations for forecasts
 #' 
 #' @param d a forecast data.frame
 #' @return a data.frame with location summaries

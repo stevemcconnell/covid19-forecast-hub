@@ -36,7 +36,8 @@ plan = drake::drake_plan(
     transform = combine(latest_forecasts)
   ),
 
-  # Locations
+  ##############
+  # Latest Locations
   latest_locations_by_model = target(
     get_forecast_locations(latest_forecasts),
     transform = map(latest_forecasts)
@@ -47,7 +48,8 @@ plan = drake::drake_plan(
     transform = combine(latest_locations_by_model)
   ),
 
-  # Quantiles
+  ##############
+  # Latest Quantiles
   latest_quantiles_by_model = target(
     get_forecast_quantiles(latest_forecasts),
     transform = map(latest_forecasts)
@@ -68,7 +70,8 @@ plan = drake::drake_plan(
     transform = combine(latest_quantiles_summary_by_model)
   ), 
   
-  # Targets
+  ##############
+  # Latest Targets
   # Only include latest forecast from each model
   latest_targets_by_model = target(
      get_forecast_targets(latest_forecasts),
@@ -82,6 +85,7 @@ plan = drake::drake_plan(
     transform = combine(latest_targets_by_model)
   ),
   
+  ##############
   # Submissions
   # Include all forecasts from each model
   submissions_by_model = target(
@@ -100,6 +104,7 @@ plan = drake::drake_plan(
   plot_submissions = get_submissions(submissions),
 
    
+  ##############
   # Plot data
   latest_plot_data_by_model = target(
     get_latest_plot_data(latest_forecasts),

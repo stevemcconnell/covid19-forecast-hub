@@ -1,3 +1,8 @@
+#' Get a forecast file
+#' 
+#' @param f file path
+#' @return a data.frame of forecast data
+#' 
 read_forecast_file <- function(f) {
   data.table::fread(f,
                     colClasses =c(

@@ -1,3 +1,8 @@
+#' Summarize submission counts in each week for each model and each target
+#' 
+#' @param submissions a data.frame with forecast dates, target and type for all forecasts
+#' @return a data.frame with a weekly count
+#' 
 get_submissions = function (submissions){
   
   submissions = reshape2::melt(submissions,id.vars=c("team_model","type","target","max_n")) 

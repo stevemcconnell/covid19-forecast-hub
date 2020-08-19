@@ -1,3 +1,8 @@
+#' Get latest forecast files for each model
+#' 
+#' @param files a list of all forecast file names
+#' @return a list of latest forecast file names
+#' 
 get_latest_forecast_files <- function(files) {
   data.frame(file = files) %>%
     tidyr::separate(file, 

@@ -1,3 +1,7 @@
+#' Summarize prediction quantiles for a model
+#' 
+#' @param d a forecast data.frame
+#' @return a data.frame with quantiles summaries
 get_forecast_quantiles_summary <- function(d){
   d %>%
     dplyr::group_by(team_model, forecast_date) %>%

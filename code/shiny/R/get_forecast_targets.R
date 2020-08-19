@@ -1,4 +1,4 @@
-#' Gets latest model forecast
+#' Get forecast target
 #' 
 #' @param d a forecast data.frame
 #' @return a data.frame with a count for the number of forecasts for each target

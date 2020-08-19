@@ -1,3 +1,7 @@
+#' Summarize prediction quantiles for a forecast
+#' 
+#' @param d a forecast data.frame
+#' @return a data.frame with quantiles summaries
 get_forecast_quantiles <- function(d){
   quantiles = list(
     full = sprintf("%.3f", c(0.01, 0.025, seq(0.05, 0.95, by = 0.05), 0.975, 0.99)),

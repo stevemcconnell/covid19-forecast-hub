@@ -93,11 +93,11 @@ ui <- navbarPage(
            )
   ),
 
-  
   tabPanel("Help",
            h3("Explore tabs"),
-           h5("Submissions: summarizes forecasts submissions for each team and each target"),
            h5("Latest locations: summarizes `Latest` to see which locations are included"),
+           h5("Latest targets: summarizes `Latest` to see which targets are included"),
+           h5("Submissions: summarizes forecasts submissions for each team and each target"),
            h5("Latest quantiles: summarizes `Latest` to see which quantiles are included"),
            h5("Latest Viz: shows visualization for forecast for a selected location"),
            h5("Latest Viz by Location: compares forecast visualization for a selected location for selected models"),
@@ -109,7 +109,7 @@ ui <- navbarPage(
 )
 
 
-# Define server logic required to draw a histogram
+# Define server logic 
 server <- function(input, output, session) {
   
   output$latest_locations <- DT::renderDT(latest_locations, filter = "top")
@@ -141,7 +141,6 @@ server <- function(input, output, session) {
     updateSelectInput(session, "county", choices = counties, selected =counties[1])
   })
   
-  
   latest_t    <- reactive({ latest_plot_data %>% filter(team_model          == input$team_model) })
   latest_tmt  <- reactive({ latest_t()      %>% filter(simple_target == input$target) })
   latest_tmtl <- reactive({ latest_tmt()     %>% filter(abbreviation    == input$abbreviation) })
@@ -157,9 +156,6 @@ server <- function(input, output, session) {
              grepl(input_simple_target, simple_target),
              source %in% input$sources)
   })
-  
-  
-  
   
   output$latest_plot      <- shiny::renderPlot({
     d    <- latest_tmtlc()
@@ -197,7 +193,6 @@ server <- function(input, output, session) {
       theme(plot.title = element_text(color = ifelse(Sys.Date() - forecast_date > 6, "red", "black")))
   })
   
-  
   #############################################################################
   # Latest viz by Location: Filter data based on user input
   latest_loc_l <- reactive({ latest_plot_data    %>% filter(abbreviation    == input$loc_state) })
@@ -218,7 +213,6 @@ server <- function(input, output, session) {
                                         targets[1]))
   })
   
-  # fix filter
   observe({
     team_models <- sort(unique(latest_loc_ltc()$team_model))
     updateSelectInput(session, "loc_team_model", choices = team_models, 
@@ -226,8 +220,6 @@ server <- function(input, output, session) {
                                           team_models,c("UMass-MechBayes","LANL-GrowthRate","YYG-ParamSearch","UCLA-SuEIR"),team_models[1]))
   })
   
-  
-
   truth_loc_plot_data <- reactive({ 
     input_simple_target <- unique(paste(
       latest_loc_ltct()$unit, "ahead", latest_loc_ltct()$inc_cum, latest_loc_ltct()$death_cases))
@@ -238,15 +230,6 @@ server <- function(input, output, session) {
              grepl(input_simple_target, simple_target),
              source %in% input$loc_sources)
   })
-  
-  #set_shiny_plot_height <- function(session, output_width_name){
-  #  function() { 
-  #    session$clientData[[output_width_name]] *2
-  #  }
-  #}
-  
-  
-
   
   output$latest_plot_by_location      <- shiny::renderPlot({
     d    <- latest_loc_ltct()
@@ -279,9 +262,6 @@ server <- function(input, output, session) {
       labs(x = "Date", y="Number", title = paste("Forecast date:", forecast_date)) +
       theme_bw() +
       theme(strip.text.x = element_text(size = 8),plot.title = element_text(color = ifelse(Sys.Date() - forecast_date > 6, "red", "black")))
-        
-    
-    
   },height ="auto")
 
   #############################################################################
@@ -289,14 +269,12 @@ server <- function(input, output, session) {
    latest_s_t <- reactive({plot_submissions %>% filter( team_model         %in% input$submissions_team_model) })
    latest_s_tmty    <- reactive({ latest_s_t() %>% filter( type    %in%  input$submissions_type) })
    latest_s_tmtyt    <- reactive({ latest_s_tmty()  %>% filter(target     %in% input$submissions_target) })
-  
    
    observe({
      types <- sort(unique(latest_s_t()$type))
      updateSelectInput(session, "submissions_type", choices = types, selected = types[1])
    })
   
-   
    observe({
      targets <- sort(unique(latest_s_tmty()$target))
      updateSelectInput(session, "submissions_target", choices = targets, 
@@ -310,6 +288,7 @@ server <- function(input, output, session) {
        session$clientData[[output_width_name]] 
      }
    }
+   
   output$submissions <-shiny::renderPlot({
     d = latest_s_tmtyt()
                         
@@ -327,7 +306,6 @@ server <- function(input, output, session) {
                             (lubridate::ymd(input$submissions_dates[2]), unit = "week") - 1-2))+
       labs(x = "Forecast Dates", y="Model Abbreviation")+
       theme(axis.text.x = element_text(angle = 60, vjust = 0.5),legend.position="bottom")
-      
   },height = set_shiny_plot_height(session, "output_submissions_width"))
 }
 
