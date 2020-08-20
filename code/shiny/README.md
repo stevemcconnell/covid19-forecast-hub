@@ -21,7 +21,7 @@ from the base folder of the repository.
 If you would like to set default team and default model to Latest Viz in shiny app,
 please add to ```.Rprofile``` and then restart R session
 
-    shiny::shinyOptions(default_team_model = "default model_abbr")
+    shiny::shinyOptions(default_model_abbr = "default model_abbr")
 
 Note: JHU New York City County truth is different from those from other sources because five boroughs in NYC were aggregated under “New York City.” For more information: please go to https://coronavirus.jhu.edu/us-map-faq
 
