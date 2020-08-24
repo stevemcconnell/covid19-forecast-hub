@@ -9980,6 +9980,6 @@ forecast_date	target	target_end_date	location	type	quantile	value
 2020-08-24	4 wk ahead cum death	2020-09-19	56	quantile	0.8	79
 2020-08-24	4 wk ahead cum death	2020-09-19	56	quantile	0.85	82
 2020-08-24	4 wk ahead cum death	2020-09-19	56	quantile	0.9	84
-2020-08-24	4 wk ahead cum death	2020-09-19	56	quantile	0.975	88
 2020-08-24	4 wk ahead cum death	2020-09-19	56	quantile	0.95	87
+2020-08-24	4 wk ahead cum death	2020-09-19	56	quantile	0.975	88
 2020-08-24	4 wk ahead cum death	2020-09-19	56	quantile	0.99	88.8
